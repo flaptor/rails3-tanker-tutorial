@@ -7,7 +7,6 @@ gem 'rails', '3.0.8'
 gem 'json_pure', '1.4.6', :require => 'json'
 
 gem 'sqlite3-ruby', :require => 'sqlite3'
-gem 'tanker'
 gem 'will_paginate'
 
 
