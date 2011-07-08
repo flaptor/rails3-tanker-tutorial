@@ -1,0 +1,102 @@
+IndexTank-Tanker Tutorial
+
+This is a step-by-step tutorial to add Tanker to every single rails application. 
+
+>> git clone git@github.com:flaptor/rails3-tanker-tutorial.git
+>> cd rails3-tanker-tutorial 
+>> rake db:migrate
+>> rails server
+
+go to http://localhost:3000/posts and add some posts to check that everything is going fine
+
+Add tanker gems to Gemfile:
+gem 'tanker'
+gem 'json_pure', '1.4.6', :require => 'json'
+gem 'will_paginate'
+
+
+>> echo "Rails3TtDemo::Application.config.index_tank_url = 'PRIVATE API URL'" > config/initializers/tanker.rb
+
+Add simple Tanker configuration to Post class
+
+include Tanker                             # include Tanker's module
+tankit 'rails_3_tanker_tutorial' do        # set the name of the index that tanker will use for this class
+  indexes :name                            # index the field 'name'
+  indexes :title                           # index the field 'title'
+  indexes :content                         # index the field 'content'
+  indexes :timestamp do                    # index the field 'timestamp' with the creation timestamp
+    Time.new.to_i
+  end
+  indexes :url do                          # index the field 'url' with the value "/posts/" + self.id.to_s
+    "/posts/" + self.id.to_s
+  end
+
+end
+after_save :update_tank_indexes            # add hooks to save, update 
+after_destroy :delete_tank_indexes         # and delete methods
+
+
+
+>> rake tanker:clear_indexes    # delete and create all indexes defined by tanker
+>> rake tanker:reindex          # add all the objects in your database to IndexTank
+
+
+Add a search form and a controller method to handle it:
+
+- Add this piece of code to apps/views/posts/index.html.erb
+<%= form_tag(search_path, :method => "get", :id => "search_form") do %>
+  <%= label_tag(:query, "Search for:") %>
+  <%= text_field_tag(:query) %>
+  <%= submit_tag("Search") %>
+<% end %>
+
+- Add this piece of code to apps/controllers/posts_controller.rb
+def search
+  @posts = Post.search_tank(params[:query])
+
+  respond_to do |format|
+    format.html { render :action => 'index' }
+    format.xml  { render :xml => @posts }
+  end
+end
+
+Add InstantLinks:
+
+Enable PublicSearchApi:
+- Go to http://indextank.com/dashboard >> Manage >> PUBLIC SEARCH API >> [Enable now]
+- Or run this 
+>> curl -X PUT <PUBLIC API URL>/v1/indexes/rails_3_tanker_tutorial -d '{"public_search":true}'
+
+Include JS and CSS:
+
+- go to app/views/layouts/application.html.erb and add this into the <head></head> tag
+  <%= yield(:head) -%>
+
+- then go to app/views/posts/index.html.erb and include the javascript required by indextank-jquery
+
+<%- content_for(:head) do -%>
+
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.11/jquery-ui.min.js"></script>
+<script type="text/javascript" src="https://github.com/flaptor/indextank-jquery/raw/1.x/jquery.indextank.ize.js"></script>
+<script type="text/javascript" src="https://github.com/flaptor/indextank-jquery/raw/1.x/jquery.indextank.instantlinks.js"></script>
+<link type="text/css" rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.11/themes/south-street/jquery-ui.css" media="all" />
+
+<script type="text/javascript">
+$(document).ready(function(){
+  $("#search_form").indextank_Ize("PUBLIC API URL", "rails_3_tanker_tutorial");
+  var options = {
+    name: "title",
+    url: "url", 
+    fields: "title,url",
+  };
+  $("#query").indextank_InstantLinks(options);
+});
+</script>
+
+<%- end -%>
+
+You'll need to replace PUBLIC API URL with your public api url.
+
+NOW, you have an amazing autocomplete that search for titles and suggest results.
+
