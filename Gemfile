@@ -7,6 +7,12 @@ gem 'rails', '3.0.8'
 
 gem 'sqlite3-ruby', :require => 'sqlite3'
 
+# tanker requirements
+gem 'tanker'
+gem 'json_pure', '1.4.6', :require => 'json'
+gem 'will_paginate'
+
+
 # Use unicorn as the web server
 # gem 'unicorn'
 

@@ -60,43 +60,114 @@ def search
   end
 end
 
-Add InstantLinks:
+Add realtime scoring functions:
 
-Enable PublicSearchApi:
-- Go to http://indextank.com/dashboard >> Manage >> PUBLIC SEARCH API >> [Enable now]
-- Or run this 
->> curl -X PUT <PUBLIC API URL>/v1/indexes/rails_3_tanker_tutorial -d '{"public_search":true}'
+- inside the 'tankit' block in app/models/post.rb, add the following code that declares one document variable and one scoring function
 
-Include JS and CSS:
+    variables do
+      {
+        0 => votes.nil? ? 0 : votes
+      }
+    end
 
-- go to app/views/layouts/application.html.erb and add this into the <head></head> tag
-  <%= yield(:head) -%>
+    functions do
+      {
+        1 => "d[0]"                         # sort desc by votes
+      }
+    end
 
-- then go to app/views/posts/index.html.erb and include the javascript required by indextank-jquery
+- add an action in apps/controllers/posts_controller.rb to update 'votes' variables
 
-<%- content_for(:head) do -%>
+  # PUT /posts/:id/vote
+  def vote
+    post = Post.find(params[:id])
+    post.votes = post.votes.nil? ? 1 : post.votes + 1
+    post.save
 
-<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
-<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.11/jquery-ui.min.js"></script>
-<script type="text/javascript" src="https://github.com/flaptor/indextank-jquery/raw/1.x/jquery.indextank.ize.js"></script>
-<script type="text/javascript" src="https://github.com/flaptor/indextank-jquery/raw/1.x/jquery.indextank.instantlinks.js"></script>
-<link type="text/css" rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.11/themes/south-street/jquery-ui.css" media="all" />
+    @posts = Post.all
 
-<script type="text/javascript">
-$(document).ready(function(){
-  $("#search_form").indextank_Ize("PUBLIC API URL", "rails_3_tanker_tutorial");
-  var options = {
-    name: "title",
-    url: "url", 
-    fields: "title,url",
-  };
-  $("#query").indextank_InstantLinks(options);
-});
-</script>
+    respond_to do |format|
+      format.html { render :action => 'index' }
+      format.xml  { render :xml => @posts }
+    end
+  end
 
-<%- end -%>
+- add a route declaration in config/routes.rb
+  match '/posts/:id/vote' => 'posts#vote'
 
-You'll need to replace PUBLIC API URL with your public api url.
 
-NOW, you have an amazing autocomplete that search for titles and suggest results.
+- add a link in app/views/posts/index.html.erb to update 'votes' variable and 
+  a label to show current votes of each method
+
+<%= link_to 'Vote up', :controller => "posts", :action => "vote", :id => post.id %>
+
+<h4>by <%= post.name %> (<%= post.votes.nil? ? 0 : post.votes %>)</h4>
+
+- In search action in apps/controllers/posts_controller.rb add a function option to tanker call
+
+@posts = Post.search_tank(query, :function => 1)
+
+- finally, run a rake task to create functions in indextank
+
+>> rake tanker:functions
+
+Now search should show posts sorted by their votes.
+
+** You can also filter documents by functions. function 2 will be "age".
+   let's give the users the option to filter by that functions. remember that recently added documents age is 0.
+
+- in app/models/post.rb add the function '2 => "age"' in the function declaration:
+    functions do
+      {
+        1 => "d[0]",                         # sort desc by votes
+        2 => "age"                           # sort desc by votes
+      }
+    end
+
+- change the search action in apps/controllers/posts_controller.rb to handle new parameters
+
+  def search
+    query = params[:query].nil? ? "" : params[:query] + '*'
+
+    from_unit = params[:from_unit].nil? ? 1 : params[:from_unit].to_i
+    from = params[:from].nil? || params[:from] == ""? "*" : params[:from].to_i * from_unit
+    to_unit = params[:to_unit].nil? ? 1 : params[:to_unit].to_i
+    to = params[:to].nil? || params[:to] == "" ? "*" : params[:to].to_i * to_unit
+
+    if from != "*" or to != "*"
+      @posts = Post.search_tank(query, :function => 1, 
+        :filter_functions => {2 => [[from, to]]})
+    else 
+      @posts = Post.search_tank(query, :function => 1)
+    end
+
+    respond_to do |format|
+      format.html { render :action => 'index' }
+      format.xml  { render :xml => @posts }
+    end
+  end
+
+- add some inputs inside the search form in app/views/posts/index.html.erb
+
+  <div id="adv_search">
+  <%= label_tag(:from, "Age from:") %>
+  <%= text_field_tag(:from, nil, :style => 'width:50px;') %>
+  <select id="from_unit" name="from_unit">
+    <option value="86400">Days</option>
+    <option value="3600">Hour</option>
+    <option value="60">Min</option>
+    <option value="1">Sec</option>
+  </select>
+  <%= label_tag(:to, "to:") %>
+  <%= text_field_tag(:to, nil, :style => 'width:50px;') %>
+  <select id="to_unit" name="to_unit">
+    <option value="86400">Days</option>
+    <option value="3600">Hour</option>
+    <option value="60">Min</option>
+    <option value="1">Sec</option>
+  </select>
+  </div>
+
+
+Now you could filter your post by age.
 

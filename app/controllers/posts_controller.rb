@@ -1,5 +1,26 @@
 class PostsController < ApplicationController
 
+  def search
+    query = params[:query].nil? ? "" : params[:query] + '*'
+
+    from_unit = params[:from_unit].nil? ? 1 : params[:from_unit].to_i
+    from = params[:from].nil? || params[:from] == ""? "*" : params[:from].to_i * from_unit
+    to_unit = params[:to_unit].nil? ? 1 : params[:to_unit].to_i
+    to = params[:to].nil? || params[:to] == "" ? "*" : params[:to].to_i * to_unit
+
+    if from != "*" or to != "*"
+      @posts = Post.search_tank(query, :function => 1, 
+        :filter_functions => {2 => [[from, to]]})
+    else 
+      @posts = Post.search_tank(query, :function => 1)
+    end
+
+    respond_to do |format|
+      format.html { render :action => 'index' }
+      format.xml  { render :xml => @posts }
+    end
+  end
+
   # GET /posts
   # GET /posts.xml
   def index
@@ -8,6 +29,20 @@ class PostsController < ApplicationController
 
     respond_to do |format|
       format.html # index.html.erb
+      format.xml  { render :xml => @posts }
+    end
+  end
+
+  # PUT /posts/:id/vote
+  def vote
+    post = Post.find(params[:id])
+    post.votes = post.votes.nil? ? 1 : post.votes + 1
+    post.save
+
+    @posts = Post.all
+
+    respond_to do |format|
+      format.html { render :action => 'index' }
       format.xml  { render :xml => @posts }
     end
   end

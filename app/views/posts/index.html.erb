@@ -1,5 +1,29 @@
 <h1>Listing posts</h1>
 
+<%= form_tag(search_path, :method => "get", :id => "search_form") do %>
+  <%= label_tag(:query, "Search for:") %>
+  <%= text_field_tag(:query) %>
+  <div id="adv_search">
+  <%= label_tag(:from, "Age from:") %>
+  <%= text_field_tag(:from, nil, :style => 'width:50px;') %>
+  <select id="from_unit" name="from_unit">
+    <option value="86400">Days</option>
+    <option value="3600">Hour</option>
+    <option value="60">Min</option>
+    <option value="1">Sec</option>
+  </select>
+  <%= label_tag(:to, "to:") %>
+  <%= text_field_tag(:to, nil, :style => 'width:50px;') %>
+  <select id="to_unit" name="to_unit">
+    <option value="86400">Days</option>
+    <option value="3600">Hour</option>
+    <option value="60">Min</option>
+    <option value="1">Sec</option>
+  </select>
+  </div>
+  <%= submit_tag("Search") %>
+<% end %>
+
 <%= link_to 'New Post', new_post_path %>
 
 <hr />
@@ -8,12 +32,13 @@
 <% @posts.each do |post| %>
   <div class="post">
     <h2><%= post.title %></h2>
-    <h4>by <%= post.name %></h4>
+    <h4>by <%= post.name %> (<%= post.votes.nil? ? 0 : post.votes %>)</h4>
     <p><%= post.content %></p>
     <span> 
       <%= link_to 'Show', post %> | 
       <%= link_to 'Edit', edit_post_path(post) %> | 
-      <%= link_to 'Destroy', post, :confirm => 'Are you sure?', :method => :delete %> 
+      <%= link_to 'Destroy', post, :confirm => 'Are you sure?', :method => :delete %>  |
+      <%= link_to 'Vote up', :controller => "posts", :action => "vote", :id => post.id %>
     </span>
   </div>
 <% end %>

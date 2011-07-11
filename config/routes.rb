@@ -4,6 +4,7 @@ Rails3TtDemo::Application.routes.draw do
   end
   
   match '/search' => 'posts#search'
+  match '/posts/:id/vote' => 'posts#vote'
 
   get "home/index"
 
