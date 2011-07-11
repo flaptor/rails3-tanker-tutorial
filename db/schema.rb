@@ -12,18 +12,11 @@
 
 ActiveRecord::Schema.define(:version => 20110411035244) do
 
-  create_table "comments", :force => true do |t|
-    t.string   "commenter"
-    t.text     "body"
-    t.integer  "post_id"
-    t.datetime "created_at"
-    t.datetime "updated_at"
-  end
-
   create_table "posts", :force => true do |t|
     t.string   "name"
     t.string   "title"
     t.text     "content"
+    t.integer  "votes"
     t.datetime "created_at"
     t.datetime "updated_at"
   end
