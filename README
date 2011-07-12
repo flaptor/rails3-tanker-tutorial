@@ -105,7 +105,7 @@ Add realtime scoring functions:
 
 - In search action in apps/controllers/posts_controller.rb add a function option to tanker call
 
-@posts = Post.search_tank(query, :function => 1)
+@posts = Post.search_tank(params[:query], :function => 1)
 
 - finally, run a rake task to create functions in indextank
 
